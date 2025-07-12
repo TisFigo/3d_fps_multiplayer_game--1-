@@ -6,6 +6,13 @@ interface GameCallbacks {
   onHit: (bulletId: string, victimId: string) => void;
 }
 
+export interface GameEngineCallbacks {
+  onPositionUpdate: (position: Vector3, rotation: Quaternion) => void;
+  onShoot: (startPosition: Vector3, direction: Vector3) => void;
+  onHit: (bulletId: Id<"bullets">, victimId: Id<"players">) => void;
+  onProgress: (progress: number) => void; // New callback for loading progress
+}
+
 export class GameEngine {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
@@ -120,13 +127,14 @@ export class GameEngine {
     this.canvas = canvas;
     this.callbacks = callbacks;
     this.clock = new THREE.Clock();
-    
+
     // Check WebGL capabilities before initialization
     const webGLCapabilities = GameEngine.detectWebGLCapabilities();
     console.log('WebGL capabilities:', webGLCapabilities);
-    
+
     console.log('GameEngine constructor called');
-    
+    this.callbacks.onProgress(0); // Initial progress
+
     try {
       // Initialize static geometries and materials once
       if (!GameEngine.bulletGeometry) {
@@ -135,16 +143,16 @@ export class GameEngine {
         GameEngine.playerGeometry = new THREE.CapsuleGeometry(0.3, 1.5, 4, 8);
         GameEngine.wallMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
       }
-      
+
       // Initialize Three.js scene and camera
       this.scene = new THREE.Scene();
       const aspect = (canvas.clientWidth || window.innerWidth) / (canvas.clientHeight || window.innerHeight);
       this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-      
+
       // Check for WebGL support and create appropriate renderer
       if (!THREE.WebGLRenderer.isWebGLAvailable()) {
         console.warn('WebGL is not supported by your browser, attempting to use fallback renderer');
-        
+
         // Check if CanvasRenderer is available (you would need to include it separately)
         if (typeof THREE.CanvasRenderer === 'function') {
           console.log('Using CanvasRenderer as fallback');
@@ -167,11 +175,16 @@ export class GameEngine {
       }
       
       this.setupRenderer();
+      this.callbacks.onProgress(20); // Progress after renderer setup
       this.setupScene();
+      this.callbacks.onProgress(40); // Progress after scene setup
       this.setupPlayer();
+      this.callbacks.onProgress(60); // Progress after player setup
       this.setupEventListeners();
+      this.callbacks.onProgress(80); // Progress after event listeners
       
       console.log('GameEngine initialized successfully');
+      this.callbacks.onProgress(100); // Final progress when initialization is complete
     } catch (error) {
       console.error('Error initializing game engine:', error);
       throw error;
@@ -209,6 +222,8 @@ export class GameEngine {
         pixelRatio: this.renderer.getPixelRatio(),
         shadowsEnabled: this.renderer.shadowMap.enabled
       });
+      // Initial progress update
+      this.callbacks.onProgress(0);
     } catch (error) {
       console.error('Error setting up renderer:', error);
       throw error;

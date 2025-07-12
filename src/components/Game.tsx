@@ -16,6 +16,7 @@ export function Game({ gameId, playerId, onLeaveGame }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameEngineRef = useRef<GameEngine | null>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0); // New state for loading progress
   
   const gameState = useQuery(api.game.getGameState, { gameId: gameId as Id<"games"> });
   const updatePosition = useMutation(api.game.updatePlayerPosition);
@@ -56,6 +57,9 @@ export function Game({ gameId, playerId, onLeaveGame }: GameProps) {
           victimId: victimId as Id<"players"> 
         }).catch(err => console.error('Error hitting player:', err));
       },
+      onProgress: (progress) => { // New callback for progress updates
+        setLoadingProgress(progress);
+      }
     };
     
     // Function to initialize the engine with fallback support
@@ -79,6 +83,7 @@ export function Game({ gameId, playerId, onLeaveGame }: GameProps) {
         clearTimeout(startTimeout);
         
         setIsEngineReady(true);
+        setLoadingProgress(100); // Set to 100% when engine is ready
         console.log(`Game engine started successfully in ${Date.now() - startTime}ms${useSimplifiedVersion ? ' (simplified version)' : ''}`);
         return true;
       } catch (error) {
@@ -135,6 +140,13 @@ export function Game({ gameId, playerId, onLeaveGame }: GameProps) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
           <p className="text-white text-lg">Starting game engine...</p>
+          <div className="w-64 mx-auto mt-4 bg-gray-700 rounded-full h-2.5">
+            <div 
+              className="bg-blue-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-gray-400 text-sm mt-2">Loading: {loadingProgress.toFixed(0)}%</p>
           <p className="text-gray-400 text-sm mt-2">This may take a few moments. If it doesn't load, please check if your browser supports WebGL.</p>
           <div className="flex flex-col gap-2 mt-6">
           <button 
